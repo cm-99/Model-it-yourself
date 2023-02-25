@@ -9,19 +9,27 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    CsvDataImportManager/asdasdas.cpp \
-    DataImportAndExport/csvdataimportmanager.cpp \
-    main.cpp \
-    mainwindow.cpp \
-    model.cpp
+    Essentials/backgroundtasksgui.cpp \
+    Essentials/backgroundtaskvisualization.cpp \
+    Essentials/corecontroller.cpp \
+    Essentials/dataset_tablemodel.cpp \
+    Essentials/logsmanager.cpp \
+    Implementations/csvdataimportandexportmanager.cpp \
+    main.cpp
 
 HEADERS += \
-    DataImportAndExport/csvdataimportmanager.h \
-    mainwindow.h \
-    model.h
+    Essentials/backgroundtasksgui.h \
+    Essentials/backgroundtaskvisualization.h \
+    Essentials/corecontroller.h \
+    Essentials/dataset_tablemodel.h \
+    Essentials/logsmanager.h \
+    Implementations/csvdataimportandexportmanager.h \
+    Interfaces/backgroundtaskenabledobject.h \
+    Interfaces/dataimportandexportmanager.h \
+    Interfaces/logconnectedobject.h
 
 FORMS += \
-    mainwindow.ui
+    Essentials/corecontroller.ui \
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -30,6 +38,5 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 DISTFILES += \
     .gitignore \
-    CsvDataImportManager/asdasdas.txt \
     LICENSE \
     README.md
