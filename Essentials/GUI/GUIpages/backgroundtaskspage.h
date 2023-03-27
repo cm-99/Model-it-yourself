@@ -1,8 +1,9 @@
-#ifndef BACKGROUNDTASKSGUI_H
-#define BACKGROUNDTASKSGUI_H
+#ifndef BACKGROUNDTASKSPAGE_H
+#define BACKGROUNDTASKSPAGE_H
 
 #include "Interfaces/backgroundtaskenabledobject.h"
-#include "Essentials/backgroundtaskvisualization.h"
+#include "Essentials/GUI/GUIelements/backgroundtaskvisualization.h"
+#include "Essentials/GUI/GUIpages/tabwidgetpage.h"
 
 #include <QScrollArea>
 #include <QWidget>
@@ -12,12 +13,13 @@
 /**
  * Class managing GUI for viewing currently performed background tasks.
  */
-class BackgroundTasksGUI : public QScrollArea
+//TODO: Add scrolling ability
+class BackgroundTasksPage : public TabWidgetPage
 {
     Q_OBJECT
 public:
-    explicit BackgroundTasksGUI(QWidget *parent = nullptr);
-    ~BackgroundTasksGUI();
+    explicit BackgroundTasksPage(QWidget *parent = nullptr);
+    ~BackgroundTasksPage();
 
     /**
      * Adds new object of type BackgroundTaskVisualization connected to @param new_task.
@@ -30,10 +32,9 @@ public:
     void remove_task_visualization(BackgroundTaskEnabledObject *task_completed);
 
 private:
-    QWidget *central_widget = nullptr;
     QVBoxLayout *layout = nullptr;
     QMap<BackgroundTaskEnabledObject*, BackgroundTaskVisualization*> tasks_mapped_to_visualizations;
 
 };
 
-#endif // BACKGROUNDTASKSGUI_H
+#endif // BACKGROUNDTASKSPAGE_H

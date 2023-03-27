@@ -47,8 +47,6 @@ void LogsManager::log_message(Log log, QString sender_name)
 
     *log_stream << "Time: " << current_date_time_as_string << " | Log importance level: " << log.importance_level << " | Sender: "
                 << sender_name << " | Log function info: " << log.function_info << " | Log message: " << log.message << "\r\n";
-    qDebug() << "Time: " << current_date_time_as_string << " | Log importance level: " << log.importance_level << " | Sender: "
-             << sender_name << " | Log function info: " << log.function_info << " | Log message: " << log.message << "\r\n";
 }
 
 void LogsManager::delete_old_log_files()

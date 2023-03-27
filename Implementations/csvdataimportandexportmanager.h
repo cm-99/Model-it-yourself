@@ -36,7 +36,7 @@ public:
     void set_dataset_file_path(QString dataset_file_path) override;
 
 private:
-    //Methods extracted from load_dataset
+    //Methods extracted from load_dataset for better readability
 
     /**
      * Load first three rows of dataset needed for further dataset validity checks.

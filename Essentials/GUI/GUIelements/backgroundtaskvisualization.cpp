@@ -1,12 +1,10 @@
-#include "Essentials/backgroundtaskvisualization.h"
-#include "qdebug.h"
+#include "Essentials/GUI/GUIelements/backgroundtaskvisualization.h"
 
 #include <QTime>
 
 BackgroundTaskVisualization::BackgroundTaskVisualization(QWidget *parent, QString message)
     : QFrame{parent}
 {
-    qDebug()<<"Parent"<<parent;
     this -> setFrameStyle(QFrame::Panel | QFrame::Raised);
     task_start_time = new QLabel(this);
     progress_bar = new QProgressBar(this);

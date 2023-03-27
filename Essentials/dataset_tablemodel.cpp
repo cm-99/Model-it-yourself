@@ -53,6 +53,96 @@ QVariant Dataset_TableModel::headerData(int section, Qt::Orientation orientation
     return QVariant();
 }
 
+bool Dataset_TableModel::removeRows(int row, int count, const QModelIndex &parent)
+{
+    beginRemoveRows(parent, row, row+count);
+
+    for(int i = 0; i < data_columns->length(); i++)
+    {
+        data_columns -> at(i) -> remove(row, count);
+        data_columns -> at(i) -> squeeze();
+    }
+
+    if(timestamps_present)
+    {
+        timestamps_column -> remove(row, count);
+        timestamps_column -> squeeze();
+    }
+
+    endRemoveRows();
+
+    emit headerDataChanged(Qt::Orientation::Vertical, row, row + count - 1);
+
+    return true;
+}
+
+bool Dataset_TableModel::removeColumns(int column, int count, const QModelIndex &parent)
+{
+    beginRemoveColumns(parent, column, column+count-1);
+
+    if(timestamps_present)
+        remove_columns_from_dataset_with_timestamps(column, count);
+    else
+        remove_columns_from_dataset_without_timestamps(column, count);
+
+    endRemoveColumns();
+
+    //Remove headers
+    for(int i = count - 1; i >= 0; i--)
+    {
+        headers.removeAt(column + i);
+    }
+
+    emit headerDataChanged(Qt::Orientation::Horizontal, column, column + count - 1);
+
+    return true;
+}
+
+void Dataset_TableModel::remove_columns_from_dataset_with_timestamps(int column, int count)
+{
+    //Offset is needed if timestamps column is removed and then data columns are to be removed
+    int offset = 0;
+
+    if(column == 0)
+    {
+        //Remove timestamps column
+        timestamps_present = false;
+        delete timestamps_column;
+
+        columns_count--;
+        count--;
+        offset++;
+    }
+
+    if(count != 0)
+    {
+        //If timestamps are present vectors inside data_columns are shifted by one relative to column
+        QVector<QVector<double>*> columns_to_delete = data_columns -> mid(column - 1 + offset, count);
+
+        data_columns -> remove(column - 1 + offset, count);
+        data_columns -> squeeze();
+
+        qDeleteAll(columns_to_delete.begin(), columns_to_delete.end());
+        columns_to_delete.clear();
+
+        columns_count = columns_count - count;
+    }
+}
+
+void Dataset_TableModel::remove_columns_from_dataset_without_timestamps(int column, int count)
+{
+    //// Delete part of the vector - TODO: extract it?
+    QVector<QVector<double>*> columns_to_delete = data_columns -> mid(column, count);
+    data_columns -> remove(column, count);
+    data_columns -> squeeze();
+
+    qDeleteAll(columns_to_delete.begin(), columns_to_delete.end());
+    columns_to_delete.clear();
+    ////
+
+    columns_count = columns_count - count;
+}
+
 void Dataset_TableModel::prepare_dataset_container(int columns, int rows)
 {
     //Columns - how many vectors should be prepared in data_columns

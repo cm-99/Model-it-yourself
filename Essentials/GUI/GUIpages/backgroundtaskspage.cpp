@@ -1,29 +1,23 @@
-#include "Essentials/backgroundtasksgui.h"
+#include "Essentials/GUI/GUIpages/BackgroundTasksPage.h"
 
 #include <QDebug>
 #include <QProgressBar>
 #include <QScrollArea>
 #include <QSpinBox>
 
-BackgroundTasksGUI::BackgroundTasksGUI(QWidget *parent)
-    : QScrollArea{parent}
+BackgroundTasksPage::BackgroundTasksPage(QWidget *parent)
+    : TabWidgetPage{parent}
 {
-    central_widget = new QWidget(this);
-    layout = new QVBoxLayout(central_widget);
-
-    this -> setWidget(central_widget);
-    this -> setWidgetResizable(true);
-
+    layout = new QVBoxLayout(this);
     layout -> setAlignment(Qt::AlignTop);
 }
 
-BackgroundTasksGUI::~BackgroundTasksGUI()
+BackgroundTasksPage::~BackgroundTasksPage()
 {
-    //TODO: Check deletion order, assert that everything is destroyed
-    delete central_widget;
+    delete layout;
 }
 
-void BackgroundTasksGUI::add_new_task_visualization(BackgroundTaskEnabledObject *new_task)
+void BackgroundTasksPage::add_new_task_visualization(BackgroundTaskEnabledObject *new_task)
 {
     BackgroundTaskVisualization *new_visualization = new BackgroundTaskVisualization(this);
     new_visualization -> connect_task_to_visualization(new_task);
@@ -31,7 +25,7 @@ void BackgroundTasksGUI::add_new_task_visualization(BackgroundTaskEnabledObject 
     layout -> addWidget(new_visualization);
 }
 
-void BackgroundTasksGUI::remove_task_visualization(BackgroundTaskEnabledObject *task_completed)
+void BackgroundTasksPage::remove_task_visualization(BackgroundTaskEnabledObject *task_completed)
 {
     if(tasks_mapped_to_visualizations.contains(task_completed))
     {

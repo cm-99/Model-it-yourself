@@ -1,9 +1,10 @@
 #ifndef CORECONTROLLER_H
 #define CORECONTROLLER_H
 
+#include "Essentials/GUI/GUIpages/DatasetEditorPage.h"
 #include "Essentials/logsmanager.h"
 #include "Essentials/dataset_tablemodel.h"
-#include "Essentials/backgroundtasksgui.h"
+#include "Essentials/GUI/GUIpages/backgroundtaskspage.h"
 #include "Interfaces/dataimportandexportmanager.h"
 
 #include <QMap>
@@ -39,7 +40,7 @@ private:
     /**
      * Mutex to assert that relaying messages to LogsManager is done by one thread at a time
      */
-    QMutex* mutex;
+    QMutex *mutex;
     /**
      * Default message display time in status bar. It can be overriden by showing a new message.
      */
@@ -60,9 +61,9 @@ private:
      */
     QMap<QString, DataImportAndExportManager*> supported_formats_mapped_to_data_managers;
     /**
-     * Vector holding pointers to objects which need to be connected to slot_receive_and_relay_log
+     * List holding pointers to objects which need to be connected to slot_receive_and_relay_log
      */
-    QVector<LogConnectedObject*> log_connected_objects;
+    QList<LogConnectedObject*> log_connected_objects;
     /**
      * Dataset file formats supported by existing implementaions of DataImportAndExportManager interface.
      */
@@ -70,10 +71,11 @@ private:
 
     //GUI attributes
 
-    QTableView *dataset_editor = nullptr;
-    BackgroundTasksGUI *background_tasks = nullptr;
+    DatasetEditorPage *dataset_editor = nullptr;
+    BackgroundTasksPage *background_tasks = nullptr;
 
     //Private methods
+
     /**
      * Starts implementation of start_background_task in a different thread,
      * creates instance of BackgroundTaskVisualization to keep track of its progress.
@@ -110,8 +112,8 @@ private:
      * Prepares main GUI framework to be filled by other classes.
      */
     void prepare_GUI();
-    void prepare_dataset_editor_tab(QTabWidget *dataset_tab_widget);
-    void prepare_background_tasks_tab(QTabWidget *central_tab_widget);
+    void prepare_dataset_tab_pages(QTabWidget *dataset_tab_widget);
+    void prepare_background_tasks_page(QTabWidget *central_tab_widget);
     void prepare_data_import_and_export_managers();
 
 private slots:
