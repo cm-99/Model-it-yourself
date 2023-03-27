@@ -9,19 +9,25 @@ CONFIG += c++17
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    Essentials/backgroundtasksgui.cpp \
-    Essentials/backgroundtaskvisualization.cpp \
+    Essentials/GUI/GUIelements/backgroundtaskvisualization.cpp \
+    Essentials/GUI/GUIpages/backgroundtaskspage.cpp \
+    Essentials/GUI/GUIpages/dataseteditorpage.cpp \
+    Essentials/GUI/GUIpages/tabwidgetpage.cpp \
     Essentials/corecontroller.cpp \
     Essentials/dataset_tablemodel.cpp \
+    Essentials/logrelay.cpp \
     Essentials/logsmanager.cpp \
     Implementations/csvdataimportandexportmanager.cpp \
     main.cpp
 
 HEADERS += \
-    Essentials/backgroundtasksgui.h \
-    Essentials/backgroundtaskvisualization.h \
+    Essentials/GUI/GUIelements/backgroundtaskvisualization.h \
+    Essentials/GUI/GUIpages/backgroundtaskspage.h \
+    Essentials/GUI/GUIpages/dataseteditorpage.h \
+    Essentials/GUI/GUIpages/tabwidgetpage.h \
     Essentials/corecontroller.h \
     Essentials/dataset_tablemodel.h \
+    Essentials/logrelay.h \
     Essentials/logsmanager.h \
     Implementations/csvdataimportandexportmanager.h \
     Interfaces/backgroundtaskenabledobject.h \

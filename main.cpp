@@ -1,4 +1,4 @@
-#include "corecontroller.h"
+#include "Essentials/corecontroller.h"
 
 #include <QApplication>
 #include <QTableView>

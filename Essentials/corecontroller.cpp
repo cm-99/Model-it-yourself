@@ -11,14 +11,15 @@ CoreController::CoreController(QWidget *parent) :
     mutex(new QMutex())
 {
     prepare_logs_manager();
-    prepare_data_import_and_export_managers();
 
+    prepare_data_import_and_export_managers();
     determine_supported_dataset_formats();
-    prepare_log_connected_objects();
 
     //Prepare GUI
     ui->setupUi(this);
     prepare_GUI();
+
+    prepare_log_connected_objects();
 }
 
 CoreController::~CoreController()
@@ -31,6 +32,7 @@ CoreController::~CoreController()
     qDeleteAll(log_connected_objects);
     log_connected_objects.clear();
 
+    //TODO: Check if it is executing properly. QStrings deletion?
     qDeleteAll(supported_formats_mapped_to_data_managers);
     supported_formats_mapped_to_data_managers.clear();
 }
@@ -49,7 +51,7 @@ void CoreController::determine_supported_dataset_formats()
     foreach(QString file_format, supported_dataset_loading_and_saving_formats)
         log.message += file_format;
 
-    logs_manager ->log_message(log, "CoreController");
+    logs_manager -> log_message(log, "CoreController");
 }
 
 void CoreController::prepare_logs_manager()
@@ -62,9 +64,8 @@ void CoreController::prepare_logs_manager()
 
 void CoreController::prepare_log_connected_objects()
 {
-    QVectorIterator<LogConnectedObject*> log_connected_objects_iterator(log_connected_objects);
-    while(log_connected_objects_iterator.hasNext())
-        connect(log_connected_objects_iterator.next(), SIGNAL(signal_log_message(Log,QString)), this, SLOT(slot_receive_and_relay_log(Log,QString)));
+    for(int i = 0; i < log_connected_objects.length(); i++)
+        connect(log_connected_objects[i], SIGNAL(signal_log_message(Log,QString)), this, SLOT(slot_receive_and_relay_log(Log,QString)));
 }
 
 void CoreController::prepare_data_import_and_export_managers()
@@ -76,19 +77,22 @@ void CoreController::prepare_data_import_and_export_managers()
     log_connected_objects.append(csv_data_import_and_export_manager);
 }
 
-void CoreController::prepare_dataset_editor_tab(QTabWidget *dataset_tab_widget)
+void CoreController::prepare_dataset_tab_pages(QTabWidget *dataset_tab_widget)
 {
-    dataset_editor = new QTableView();
-
-    dataset_editor ->setStyleSheet("QHeaderView::section { background-color:grey }"
-                                   "QTableCornerButton::section { background-color:grey }");
+    dataset_editor = new DatasetEditorPage(dataset_tab_widget);
     dataset_tab_widget -> addTab(dataset_editor, "Dataset editor");
+
+    LogRelay *dataset_editors_log_connector = dataset_editor -> get_log_relay();
+    log_connected_objects.append(dataset_editors_log_connector);
 }
 
-void CoreController::prepare_background_tasks_tab(QTabWidget *central_tab_widget)
+void CoreController::prepare_background_tasks_page(QTabWidget *central_tab_widget)
 {
-    background_tasks = new BackgroundTasksGUI(central_tab_widget);
+    background_tasks = new BackgroundTasksPage(central_tab_widget);
     central_tab_widget -> addTab(background_tasks, "Background tasks");
+
+    LogRelay *background_tasks_log_connector = dataset_editor -> get_log_relay();
+    log_connected_objects.append(background_tasks_log_connector);
 }
 
 void CoreController::prepare_GUI()
@@ -109,6 +113,7 @@ void CoreController::prepare_GUI()
 
     //Preparing essential tabs to be filled by classes responsible for handling corresponding functionalities
     //TODO: separate it into a method
+    //TODO: connect all LogRelays owned by pages to logs_manager
     QTabWidget *central_tab_widget = new QTabWidget(this);
     setCentralWidget(central_tab_widget);
 
@@ -118,8 +123,8 @@ void CoreController::prepare_GUI()
     central_tab_widget -> addTab(dataset_tab_widget, "Dataset");
     central_tab_widget -> addTab(models_tab_widget, "Models");
 
-    prepare_background_tasks_tab(central_tab_widget);
-    prepare_dataset_editor_tab(dataset_tab_widget);
+    prepare_dataset_tab_pages(dataset_tab_widget);
+    prepare_background_tasks_page(central_tab_widget);
 }
 
 void CoreController::create_background_task(BackgroundTaskEnabledObject *task_object, int task_index)
@@ -154,7 +159,7 @@ void CoreController::slot_change_active_dataset(Dataset_TableModel *new_model)
     active_dataset_model = new_model;
 
     //TODO: Update all widgets using Dataset_TableModel when current one is changed, extract it into a new method
-    dataset_editor -> setModel(active_dataset_model);
+    dataset_editor -> set_model(new_model);
 
     if(previous_dataset_model != nullptr)
         previous_dataset_model -> deleteLater();
@@ -166,10 +171,7 @@ void CoreController::slot_process_task_completion()
 
     BackgroundTaskEnabledObject *object_which_finished_task = dynamic_cast<BackgroundTaskEnabledObject*>(sender);
     if(object_which_finished_task != nullptr)
-    {
-        object_which_finished_task ->disconnect();
         background_tasks -> remove_task_visualization(object_which_finished_task);
-    }
 }
 
 void CoreController::delegate_dataset_loading(QString dataset_file_path)

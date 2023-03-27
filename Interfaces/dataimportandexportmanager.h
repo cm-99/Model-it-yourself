@@ -2,14 +2,15 @@
 #define DATAIMPORTANDEXPORTMANAGER_H
 
 #include "Interfaces/backgroundtaskenabledobject.h"
-#include "Essenstials/dataset_tablemodel.h"
+#include "Essentials/dataset_tablemodel.h"
 
 /**
  * Interface to be inherited by all classes performing dataset loading and/or saving.
  * Proper implementation allows the CoreController to automatically create list of supported formats and invoke load/save_dataset method
  * of suitable class when user chooses a file in one of those formats.
  *
- * Each implementation's object needs to be manually initialized and added to container in the CoreController.
+ * For now each implementation's object needs to be manually initialized and added to container in the CoreController.
+ * It may change - TODO: Plugin-based architecture
  */
 class DataImportAndExportManager : public BackgroundTaskEnabledObject
 {
