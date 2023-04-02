@@ -27,14 +27,10 @@ CoreController::~CoreController()
     delete ui;
     delete logs_manager;
     delete mutex;
-    delete active_dataset_model;
+    delete active_dataset;
 
     qDeleteAll(log_connected_objects);
     log_connected_objects.clear();
-
-    //TODO: Check if it is executing properly. QStrings deletion?
-    qDeleteAll(supported_formats_mapped_to_data_managers);
-    supported_formats_mapped_to_data_managers.clear();
 }
 
 void CoreController::determine_supported_dataset_formats()
@@ -72,18 +68,26 @@ void CoreController::prepare_data_import_and_export_managers()
 {
     DataImportAndExportManager *csv_data_import_and_export_manager = new CsvDataImportAndExportManager();
 
-    connect(csv_data_import_and_export_manager, SIGNAL(signal_dataset_loaded(Dataset_TableModel*)), this, SLOT(slot_change_active_dataset(Dataset_TableModel*)));
+    connect(csv_data_import_and_export_manager, &DataImportAndExportManager::signal_dataset_loaded, this, &CoreController::slot_change_active_dataset);
     supported_formats_mapped_to_data_managers.insert(csv_data_import_and_export_manager -> get_supported_format(), csv_data_import_and_export_manager);
     log_connected_objects.append(csv_data_import_and_export_manager);
 }
 
-void CoreController::prepare_dataset_tab_pages(QTabWidget *dataset_tab_widget)
+void CoreController::prepare_dataset_tab_pages()
 {
     dataset_editor = new DatasetEditorPage(dataset_tab_widget);
     dataset_tab_widget -> addTab(dataset_editor, "Dataset editor");
+    dataset_details = new DatasetDetails(dataset_tab_widget);
+    dataset_tab_widget -> addTab(dataset_details, "Dataset details");
+    dataset_plots = new DatasetPlotsPage(dataset_tab_widget);
+    dataset_tab_widget -> addTab(dataset_plots, "Dataset plots");
 
-    LogRelay *dataset_editors_log_connector = dataset_editor -> get_log_relay();
-    log_connected_objects.append(dataset_editors_log_connector);
+    LogRelay *dataset_editors_logs_connector = dataset_editor -> get_log_relay();
+    log_connected_objects.append(dataset_editors_logs_connector);
+    LogRelay *dataset_details_logs_connector = dataset_details -> get_log_relay();
+    log_connected_objects.append(dataset_details_logs_connector);
+    LogRelay *dataset_plots_logs_connector = dataset_plots -> get_log_relay();
+    log_connected_objects.append(dataset_plots_logs_connector);
 }
 
 void CoreController::prepare_background_tasks_page(QTabWidget *central_tab_widget)
@@ -117,13 +121,13 @@ void CoreController::prepare_GUI()
     QTabWidget *central_tab_widget = new QTabWidget(this);
     setCentralWidget(central_tab_widget);
 
-    QTabWidget *dataset_tab_widget = new QTabWidget();
+    dataset_tab_widget = new QTabWidget();
     QTabWidget *models_tab_widget = new QTabWidget();
 
     central_tab_widget -> addTab(dataset_tab_widget, "Dataset");
     central_tab_widget -> addTab(models_tab_widget, "Models");
 
-    prepare_dataset_tab_pages(dataset_tab_widget);
+    prepare_dataset_tab_pages();
     prepare_background_tasks_page(central_tab_widget);
 }
 
@@ -146,23 +150,34 @@ void CoreController::slot_receive_and_relay_log(Log log, QString senderName)
 
     if(log.importance_level == enum_message_importance_level::WARNING)
         QMessageBox::warning(this, "MIY warning", "Warning: " + log.message, QMessageBox::Ok | QMessageBox::NoButton);
-    else if(log.importance_level == enum_message_importance_level::ERROR)
+    else if(log.importance_level == enum_message_importance_level::ERRO)
     {
         QMessageBox::critical(this, "MIY ERROR", "MIY encountered critical error and will close now: " + log.message, QMessageBox::Ok | QMessageBox::NoButton);
         QCoreApplication::quit();
     }
 }
 
-void CoreController::slot_change_active_dataset(Dataset_TableModel *new_model)
+void CoreController::slot_change_active_dataset(EditableDataset *new_dataset)
 {
-    Dataset_TableModel *previous_dataset_model = active_dataset_model;
-    active_dataset_model = new_model;
+    EditableDataset *previous_dataset = active_dataset;
+    active_dataset = new_dataset;
 
-    //TODO: Update all widgets using Dataset_TableModel when current one is changed, extract it into a new method
-    dataset_editor -> set_model(new_model);
+    //Calculate signals statistics now that dataset is complete
+    //active_dataset -> calculate_signals_statistics();
 
-    if(previous_dataset_model != nullptr)
-        previous_dataset_model -> deleteLater();
+    //Prepare all dataset connections
+    connect(active_dataset, &EditableDataset::signal_all_data_removed, dataset_editor, &DatasetEditorPage::slot_restore_to_default);
+
+    connect(active_dataset, &EditableDataset::signal_all_data_removed, dataset_details, &DatasetDetails::slot_restore_to_default);
+    connect(active_dataset, &EditableDataset::signal_dataset_edited, dataset_details, &DatasetDetails::slot_update_widgets);
+
+    //Change dataset being represented by dataset_tab_widget
+    dataset_editor -> set_dataset(new_dataset);
+    dataset_details -> set_dataset(new_dataset);
+    dataset_plots -> set_dataset(new_dataset);
+
+    if(previous_dataset != nullptr)
+        previous_dataset -> deleteLater();
 }
 
 void CoreController::slot_process_task_completion()
@@ -174,8 +189,16 @@ void CoreController::slot_process_task_completion()
         background_tasks -> remove_task_visualization(object_which_finished_task);
 }
 
+void CoreController::slot_restore_dataset_tabs_to_default_state()
+{
+
+}
+
 void CoreController::delegate_dataset_loading(QString dataset_file_path)
 {
+    if(dataset_file_path.isEmpty())
+        return;
+
     QString sender_name = "CoreController";
     Log log;
     log.function_info = Q_FUNC_INFO;

@@ -20,18 +20,21 @@ public:
     ~DatasetEditorPage();
 
     /**
-     * Relays model change request to dataset_view.
+     * Creates Dataset_TableModel from provided dataset and relays model change to QTableView.
+     * Enables use of remove buttons.
      */
-    void set_model(Dataset_TableModel *dataset_model);
+    void set_dataset(EditableDataset *dataset);
 
 private:
-    //GUI attributes
-    QVBoxLayout *main_layout = nullptr;
-    QHBoxLayout *buttons_layout = nullptr;
-    QTableView *dataset_view = nullptr;
+    Dataset_TableModel *dataset_model = nullptr;
 
-    QPushButton *button_remove_selection = nullptr;
-    QPushButton *button_remove_in_range = nullptr;
+    //GUI attributes
+    QVBoxLayout main_layout;
+    QHBoxLayout buttons_layout;
+    QTableView dataset_view;
+
+    QPushButton button_remove_selection;
+    QPushButton button_remove_in_range;
 
     //Dataset edition methods
 
@@ -48,7 +51,12 @@ private:
     QList<QPair<int, int>> divide_rows_selection_into_sections(QModelIndexList selection);
     QList<QPair<int, int>> divide_columns_selection_into_sections(QModelIndexList selection);
 
-    void prepare_dialog_for_data_edition();
+public slots:
+    /**
+     * Restores object to default state with buttons disabled and Dataset_TableModel removed.
+     * Should be called if all the rows/columns in dataset were removed by the user.
+     */
+    void slot_restore_to_default();
 
 private slots:
     /**

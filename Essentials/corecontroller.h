@@ -2,9 +2,11 @@
 #define CORECONTROLLER_H
 
 #include "Essentials/GUI/GUIpages/DatasetEditorPage.h"
-#include "Essentials/logsmanager.h"
-#include "Essentials/dataset_tablemodel.h"
+#include "Essentials/GUI/GUIpages/datasetplotspage.h"
 #include "Essentials/GUI/GUIpages/backgroundtaskspage.h"
+#include "Essentials/GUI/GUIpages/datasetdetails.h"
+#include "Essentials/logsmanager.h"
+#include "Essentials/editabledataset.h"
 #include "Interfaces/dataimportandexportmanager.h"
 
 #include <QMap>
@@ -53,9 +55,9 @@ private:
      */
     LogsManager *logs_manager = nullptr;
     /**
-     * Currently active dataset model. It can be altered, [TODO: displayed using plots or used to create a new model].
+     * Currently active dataset. It can be altered, [TODO: displayed using plots or used to create a new model].
      */
-    Dataset_TableModel *active_dataset_model = nullptr;
+    EditableDataset *active_dataset = nullptr;
     /**
      * QMap holding pairs of file extensions and pointers to objects providing dataset loading and saving functionalities for those extensions.
      */
@@ -69,9 +71,17 @@ private:
      */
     QStringList supported_dataset_loading_and_saving_formats;
 
-    //GUI attributes
+    ////GUI attributes
+    QTabWidget *dataset_tab_widget = nullptr;
 
+    //Dataset tab pages
     DatasetEditorPage *dataset_editor = nullptr;
+    DatasetDetails *dataset_details = nullptr;
+    DatasetPlotsPage *dataset_plots = nullptr;
+
+    //Models tab pages
+
+    //Background tasks pages
     BackgroundTasksPage *background_tasks = nullptr;
 
     //Private methods
@@ -112,7 +122,7 @@ private:
      * Prepares main GUI framework to be filled by other classes.
      */
     void prepare_GUI();
-    void prepare_dataset_tab_pages(QTabWidget *dataset_tab_widget);
+    void prepare_dataset_tab_pages();
     void prepare_background_tasks_page(QTabWidget *central_tab_widget);
     void prepare_data_import_and_export_managers();
 
@@ -130,14 +140,18 @@ private slots:
      * Previous dataset is deleted.
      * @param new_model - new dataset model to replace active_dataset_model.
      */
-    void slot_change_active_dataset(Dataset_TableModel *new_model);
+    void slot_change_active_dataset(EditableDataset *new_dataset);
     /**
-     * @brief slot_process_task_completion
+     * For now - removes task visualization for completed task.
      */
     void slot_process_task_completion();
+    /**
+     * Restores all objects heavily depended on presence of valid dataset (dataset tabs for now) to their default states
+     * in response to removal of all the dataset data by the user.
+     */
+    void slot_restore_dataset_tabs_to_default_state();
 
     //GUI slots
-
     /**
      * Loads dataset from file specified by user through file dialog.
      * File is selectable if its extension is contained by supported_dataset_loading_and_saving_formats.

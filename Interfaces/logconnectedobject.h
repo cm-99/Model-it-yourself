@@ -1,17 +1,14 @@
 #ifndef LOGCONNECTEDOBJECT_H
 #define LOGCONNECTEDOBJECT_H
 
-#include <QObject>
-
-/**
- * Enum defining message types corresponding to those of QMessageBox.
- */
 enum enum_message_importance_level
 {
     DEBUG = 0, //general information
     WARNING = 1, //information about events that the user might want to pay special attention to
-    ERROR = 2 //notification about an error, potentially disabling further object use
+    ERRO = 2 //notification about an error, potentially disabling further object use. No, it's not misspelled. It was throwing errors.
 };
+
+#include <QObject>
 
 /**
  * Struct binding together components of log - function info, message, importance level.

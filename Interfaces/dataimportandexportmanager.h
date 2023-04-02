@@ -2,7 +2,7 @@
 #define DATAIMPORTANDEXPORTMANAGER_H
 
 #include "Interfaces/backgroundtaskenabledobject.h"
-#include "Essentials/dataset_tablemodel.h"
+#include "Essentials/editabledataset.h"
 
 /**
  * Interface to be inherited by all classes performing dataset loading and/or saving.
@@ -51,7 +51,7 @@ signals:
      * Must be emitted at the end of load_dataset method if currently used dataset is to be changed.
      * @param loaded_dataset - dataset created and filled with data by load_dataset method.
      */
-    void signal_dataset_loaded(Dataset_TableModel *loaded_dataset);
+    void signal_dataset_loaded(EditableDataset *loaded_dataset);
 };
 
 #endif // DATAIMPORTANDEXPORTMANAGER_H
