@@ -10,47 +10,62 @@
 DatasetEditorPage::DatasetEditorPage(QWidget *parent)
     : TabWidgetPage{parent}
 {
-    dataset_view = new QTableView(this);
-    main_layout = new QVBoxLayout(this);
-    buttons_layout = new QHBoxLayout();
+    //Set buttons parameters and connect them to corresponding slots
+    button_remove_selection.setText("Remove selection");
+    button_remove_selection.setDisabled(true);
+    button_remove_in_range.setText("Remove in range");
+    button_remove_in_range.setDisabled(true);
 
-    //Create and connect buttons to corresponding slots
-    button_remove_selection = new QPushButton("Remove selection", this);
-    button_remove_selection->setDisabled(true);
-    button_remove_in_range = new QPushButton("Remove in range", this);
-    button_remove_in_range->setDisabled(true);
-
-    connect(button_remove_selection, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_selection);
-    connect(button_remove_in_range, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_in_range);
+    connect(&button_remove_selection, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_selection);
+    connect(&button_remove_in_range, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_in_range);
 
     //Prepare dataset_view settings
-    dataset_view -> setStyleSheet("QHeaderView::section { background-color:grey } QTableCornerButton::section { background-color:grey }");
-    dataset_view -> setSelectionBehavior(QAbstractItemView::SelectRows);
-    dataset_view -> setSelectionMode(QAbstractItemView::ExtendedSelection);
+    dataset_view.setStyleSheet("QHeaderView::section { background-color:grey } QTableCornerButton::section { background-color:grey }");
+    dataset_view.setSelectionBehavior(QAbstractItemView::SelectRows);
+    dataset_view.setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     //Change selection behavior depending on user action
-    connect(dataset_view -> horizontalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_horizontal_header_clicked);
-    connect(dataset_view -> verticalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_vertical_header_clicked);
+    connect(dataset_view.horizontalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_horizontal_header_clicked);
+    connect(dataset_view.verticalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_vertical_header_clicked);
 
     //Add widgets to layout
-    main_layout -> addWidget(dataset_view);
-    main_layout -> addLayout(buttons_layout);
-    buttons_layout -> addWidget(button_remove_selection);
-    buttons_layout -> addWidget(button_remove_in_range);
+    this->setLayout(&main_layout);
+    main_layout.addWidget(&dataset_view);
+    main_layout.addLayout(&buttons_layout);
+    buttons_layout.addWidget(&button_remove_selection);
+    buttons_layout.addWidget(&button_remove_in_range);
 }
 
 DatasetEditorPage::~DatasetEditorPage()
 {
-    delete buttons_layout;
-    delete dataset_view;
-    delete main_layout;
+    if(dataset_model != nullptr)
+        dataset_model -> deleteLater();
 }
 
-void DatasetEditorPage::set_model(Dataset_TableModel *dataset_model)
+void DatasetEditorPage::set_dataset(EditableDataset *dataset)
 {
-    dataset_view -> setModel(dataset_model);
-    button_remove_in_range->setDisabled(false);
-    button_remove_selection->setDisabled(false);
+    auto *previous_dataset_model = dataset_model;
+    dataset_model = new Dataset_TableModel(dataset);
+
+    dataset_view.setModel(dataset_model);
+    button_remove_in_range.setDisabled(false);
+    button_remove_selection.setDisabled(false);
+
+    if(previous_dataset_model != nullptr)
+        previous_dataset_model->deleteLater();
+}
+
+void DatasetEditorPage::slot_restore_to_default()
+{
+    auto *previous_dataset_model = dataset_model;
+    dataset_model = nullptr;
+
+    dataset_view.setModel(dataset_model);
+    button_remove_in_range.setDisabled(true);
+    button_remove_selection.setDisabled(true);
+
+    if(previous_dataset_model != nullptr)
+        previous_dataset_model->deleteLater();
 }
 
 QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QModelIndexList selection)
@@ -108,21 +123,16 @@ QList<QPair<int, int> > DatasetEditorPage::divide_columns_selection_into_section
     return list_of_selections_to_remove;
 }
 
-void DatasetEditorPage::prepare_dialog_for_data_edition()
-{
-
-}
-
 void DatasetEditorPage::slot_remove_selection()
 {
-    if(dataset_view -> model() == nullptr)
+    if(dataset_model == nullptr)
         return;
 
     QString sender_name = "DatasetEditorPage";
     Log log;
     log.function_info = Q_FUNC_INFO;
 
-    QModelIndexList selection = dataset_view -> selectionModel() -> selectedIndexes();
+    QModelIndexList selection = dataset_view.selectionModel() -> selectedIndexes();
 
     if(selection.isEmpty())
     {
@@ -131,15 +141,24 @@ void DatasetEditorPage::slot_remove_selection()
         return;
     }
 
-    if(dataset_view -> selectionBehavior() == QAbstractItemView::SelectRows)
+    if(dataset_view.selectionBehavior() == QAbstractItemView::SelectRows)
         remove_selected_rows();
     else
         remove_selected_columns();
+
+    if(dataset_model->rowCount() == 0)
+    {
+        button_remove_in_range.setDisabled(true);
+        button_remove_selection.setDisabled(true);
+    }
 }
 
 void DatasetEditorPage::remove_selected_rows()
 {
-    QModelIndexList selection = dataset_view -> selectionModel() -> selectedRows();
+    QModelIndexList selection = dataset_view.selectionModel() -> selectedRows();
+    //It needs to be sorted because user can select it arbitrary
+    //TODO: qLess is deprecated, try to convert it to std::sort
+    qSort(selection.begin(), selection.end(), qLess<QModelIndex>());
 
     QString sender_name = "DatasetEditorPage";
     Log log;
@@ -166,7 +185,7 @@ void DatasetEditorPage::remove_selected_rows()
     {
         int first_row = list_of_selections_to_remove[i].first;
         int count = list_of_selections_to_remove[i].second;
-        dataset_view -> model() -> removeRows(first_row, count);
+        dataset_view.model() -> removeRows(first_row, count);
         list_of_selections_as_string += "(" + QString(first_row) + ", " + QString(count) + ")";
     }
 
@@ -176,7 +195,10 @@ void DatasetEditorPage::remove_selected_rows()
 
 void DatasetEditorPage::remove_selected_columns()
 {
-    QModelIndexList selection = dataset_view -> selectionModel() -> selectedColumns();
+    QModelIndexList selection = dataset_view.selectionModel() -> selectedColumns();
+    //It needs to be sorted because user can select it arbitrary
+    //TODO: qLess is deprecated, try to convert it to std::sort
+    qSort(selection.begin(), selection.end(), qLess<QModelIndex>());
 
     QString sender_name = "DatasetEditorPage";
     Log log;
@@ -203,7 +225,7 @@ void DatasetEditorPage::remove_selected_columns()
     {
         int first_column = list_of_selections_to_remove[i].first;
         int count = list_of_selections_to_remove[i].second;
-        dataset_view -> model() -> removeColumns(first_column, count);
+        dataset_view.model() -> removeColumns(first_column, count);
         list_of_selections_as_string += "(" + QString(first_column) + ", " + QString(count) + ")";
     }
 
@@ -213,7 +235,7 @@ void DatasetEditorPage::remove_selected_columns()
 
 void DatasetEditorPage::slot_remove_in_range()
 {
-    if(dataset_view -> model() == nullptr)
+    if(dataset_model == nullptr)
         return;
 
     QDialog ranges_to_remove_dialog(this);
@@ -229,6 +251,11 @@ void DatasetEditorPage::slot_remove_in_range()
     QLabel first_column_to_remove_label("First column to remove"), last_column_to_remove_label("Last column to remove");
     QSpinBox first_row_to_remove_spinbox, last_row_to_remove_spinbox;
     QSpinBox first_column_to_remove_spinbox, last_column_to_remove_spinbox;
+
+    first_row_to_remove_spinbox.setRange(0, dataset_model->rowCount());
+    last_row_to_remove_spinbox.setRange(0, dataset_model->rowCount());
+    first_column_to_remove_spinbox.setRange(0, dataset_model->columnCount());
+    last_column_to_remove_spinbox.setRange(0, dataset_model->columnCount());
 
     QDialogButtonBox button_box(QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,Qt::Horizontal, &ranges_to_remove_dialog));
     QObject::connect(&button_box, &QDialogButtonBox::accepted, &ranges_to_remove_dialog, &QDialog::accept);
@@ -252,7 +279,7 @@ void DatasetEditorPage::slot_remove_in_range()
                        last_row_to_remove_spinbox.value() : first_row_to_remove_spinbox.value();
 
             int rows_to_remove_count = abs(last_row_to_remove_spinbox.value() - first_row_to_remove_spinbox.value()) + 1;
-            dataset_view -> model() -> removeRows(real_first_row_to_remove_index, rows_to_remove_count);
+            dataset_view.model() -> removeRows(real_first_row_to_remove_index, rows_to_remove_count);
         }
 
         if(remove_columns_checkbox.isChecked())
@@ -262,25 +289,31 @@ void DatasetEditorPage::slot_remove_in_range()
 
 
             int columns_to_remove_count = abs(last_column_to_remove_spinbox.value() - first_column_to_remove_spinbox.value()) + 1;
-            dataset_view -> model() -> removeColumns(real_first_column_to_remove_index, columns_to_remove_count);
+            dataset_view.model() -> removeColumns(real_first_column_to_remove_index, columns_to_remove_count);
         }
+    }
+
+    if(dataset_model->rowCount() == 0)
+    {
+        button_remove_in_range.setDisabled(true);
+        button_remove_selection.setDisabled(true);
     }
 }
 
 void DatasetEditorPage::slot_horizontal_header_clicked(int column_index)
 {
-    if(dataset_view -> selectionBehavior() == QAbstractItemView::SelectColumns)
+    if(dataset_view.selectionBehavior() == QAbstractItemView::SelectColumns)
         return;
 
-    dataset_view -> setSelectionBehavior(QAbstractItemView::SelectColumns);
-    dataset_view -> selectColumn(column_index);
+    dataset_view.setSelectionBehavior(QAbstractItemView::SelectColumns);
+    dataset_view.selectColumn(column_index);
 }
 
 void DatasetEditorPage::slot_vertical_header_clicked(int row_index)
 {
-    if(dataset_view -> selectionBehavior() == QAbstractItemView::SelectRows)
+    if(dataset_view.selectionBehavior() == QAbstractItemView::SelectRows)
         return;
 
-    dataset_view -> setSelectionBehavior(QAbstractItemView::SelectRows);
-    dataset_view -> selectRow(row_index);
+    dataset_view.setSelectionBehavior(QAbstractItemView::SelectRows);
+    dataset_view.selectRow(row_index);
 }

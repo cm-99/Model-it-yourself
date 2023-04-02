@@ -32,7 +32,7 @@ public:
     void remove_task_visualization(BackgroundTaskEnabledObject *task_completed);
 
 private:
-    QVBoxLayout *layout = nullptr;
+    QVBoxLayout layout;
     QMap<BackgroundTaskEnabledObject*, BackgroundTaskVisualization*> tasks_mapped_to_visualizations;
 
 };

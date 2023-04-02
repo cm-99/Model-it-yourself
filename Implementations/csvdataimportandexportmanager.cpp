@@ -1,8 +1,10 @@
 #include "Implementations/csvdataimportandexportmanager.h"
-#include "Essentials/dataset_tablemodel.h"
+#include "Essentials/readonlydataset.h"
 
 #include <QChar>
 #include <QTime>
+#include <QFileInfo>
+
 CsvDataImportAndExportManager::CsvDataImportAndExportManager()
 {
     supported_format = QObject::tr("*.csv");
@@ -21,10 +23,10 @@ void CsvDataImportAndExportManager::start_background_task(int task_index)
         save_dataset();
 }
 
-void CsvDataImportAndExportManager::load_dataset_without_timestamps_into_containers(char separator, Dataset_TableModel *dataset, QTextStream *dataset_file_text_stream)
+void CsvDataImportAndExportManager::load_dataset_without_timestamps_into_containers(char separator, EditableDataset *dataset, QTextStream *dataset_file_text_stream)
 {
-    int dataset_length = dataset -> rowCount();
-    int data_columns_count = dataset -> columnCount();
+    int dataset_length = dataset -> get_rows_count();
+    int data_columns_count = dataset -> get_columns_count();
 
     int progress_bar_step_value = dataset_length/100;
     int progress_value = 1;
@@ -34,7 +36,7 @@ void CsvDataImportAndExportManager::load_dataset_without_timestamps_into_contain
     {
         QStringList file_line_splitted = dataset_file_text_stream->readLine().split(separator);
         for(int j = 0; j < data_columns_count; j++)
-            dataset -> data_columns -> at(j) -> append(file_line_splitted.at(j).toDouble());
+            dataset -> append_sample(j, file_line_splitted.at(j).toDouble());
 
         current_step_loading_progress++;
         if(current_step_loading_progress == progress_bar_step_value)
@@ -46,11 +48,10 @@ void CsvDataImportAndExportManager::load_dataset_without_timestamps_into_contain
     }
 }
 
-void CsvDataImportAndExportManager::load_dataset_with_timestamps_into_containers(char separator, Dataset_TableModel *dataset, QTextStream *dataset_file_text_stream)
+void CsvDataImportAndExportManager::load_dataset_with_timestamps_into_containers(char separator, EditableDataset *dataset, QTextStream *dataset_file_text_stream)
 {
-    int dataset_length = dataset -> rowCount();
-    int data_columns_count = dataset -> columnCount() - 1;
-
+    int dataset_length = dataset -> get_rows_count();
+    int data_columns_count = dataset -> get_columns_count() - 1; //Offset by 1 because timestamps are present
     int progress_bar_step_value = dataset_length/100;
     int progress_value = 1;
     int current_step_loading_progress = 0;
@@ -58,9 +59,10 @@ void CsvDataImportAndExportManager::load_dataset_with_timestamps_into_containers
     for(int i = 0; i < dataset_length; i++)
     {
         QStringList file_line_splitted = dataset_file_text_stream->readLine().split(separator);
-        dataset -> timestamps_column -> append(file_line_splitted.at(0));
+
+        dataset -> append_timestamp(file_line_splitted.at(0));
         for(int j = 0; j < data_columns_count; j++)
-            dataset -> data_columns -> at(j) -> append(file_line_splitted.at(j+1).toDouble());
+            dataset -> append_sample(j, file_line_splitted.at(j+1).toDouble());
 
         current_step_loading_progress++;
         if(current_step_loading_progress == progress_bar_step_value)
@@ -72,7 +74,7 @@ void CsvDataImportAndExportManager::load_dataset_with_timestamps_into_containers
     }
 }
 
-bool CsvDataImportAndExportManager::prepare_dataset_headers(Dataset_TableModel *dataset, char separator, QString first_row)
+bool CsvDataImportAndExportManager::prepare_dataset_headers(EditableDataset *dataset, char separator, QString first_row)
 {
     bool headers_present = false;
 
@@ -82,7 +84,13 @@ bool CsvDataImportAndExportManager::prepare_dataset_headers(Dataset_TableModel *
         if(character.isLetter())
         {
             headers_present = true;
-            dataset -> headers = first_row.split(separator);
+            QStringList headers = first_row.split(separator);
+
+            for(int i = 0; i < headers.length(); i++)
+            {
+                dataset -> append_signal_info(SignalInfo(headers.at(i)));
+            }
+
             return headers_present;
         }
     }
@@ -90,14 +98,14 @@ bool CsvDataImportAndExportManager::prepare_dataset_headers(Dataset_TableModel *
     //If there are no headers prepare default ones
     if(!headers_present)
         for(int i = 0; i < first_row.split(separator).length(); i++)
-            dataset -> headers.append(QString("Signal_%1").arg(i));
+            dataset -> append_signal_info(SignalInfo(QString("Signal_%1").arg(i)));
 
     return headers_present;
 }
 
 void CsvDataImportAndExportManager::load_dataset()
 {
-    //TODO: Break it up into methods
+    //TODO: Clean it, break it up into methods
     emit signal_update_task_message("Checking dataset validity of file: " + dataset_file_path);
     QString sender_name = "CsvDataImportAndExportManager";
     Log log;
@@ -144,26 +152,29 @@ void CsvDataImportAndExportManager::load_dataset()
         return;
     }
 
-    Dataset_TableModel *dataset = new Dataset_TableModel;
+    EditableDataset *dataset = new EditableDataset();
     bool headers_present = prepare_dataset_headers(dataset, separator, first_three_rows.at(0));
 
     //Attemp to get sampling time. On fail it will be equal to 0.
     bool timestamps_present = false;
-    int sampling_time_in_miliseconds = get_dataset_sampling_time_in_miliseconds(presumably_timestamp, presumably_next_timestamp);
-    if(sampling_time_in_miliseconds > 0)
+    double sampling_time_in_seconds = get_dataset_sampling_time_in_seconds(presumably_timestamp, presumably_next_timestamp);
+    if(sampling_time_in_seconds > 0)
         timestamps_present = true;
-    dataset -> sampling_time_in_miliseconds = sampling_time_in_miliseconds;
+
+    dataset -> set_sampling_time_in_seconds(sampling_time_in_seconds);
 
     //Getting dataset_lenght to reserve size in dataset container
     //TODO: Check if it can be done without iterating through the whole file
     int dataset_length = 3;
+    dataset_file_text_stream.readLine();
+
     while (!dataset_file_text_stream.atEnd())
     {
         dataset_length += 1;
         dataset_file_text_stream.readLine();
     }
 
-    //There is separate container for headers - do not reserve size for it in dataset container
+    //There is separate container for signals info, headers included - do not reserve size for it in dataset container
     if(headers_present)
         dataset_length --;
 
@@ -172,11 +183,9 @@ void CsvDataImportAndExportManager::load_dataset()
     {
         //How many data_columns should be prepared (timestamp has separate container)
         data_columns_count--;
-        dataset -> prepare_timestamps_container(dataset_length);
-        dataset -> headers.replace(0, "Timestamp");
     }
 
-    dataset -> prepare_dataset_container(data_columns_count, dataset_length);
+    dataset -> prepare_dataset_container(data_columns_count, dataset_length, timestamps_present);
     emit signal_update_task_message("Creating new dataset from file: " + dataset_file_path);
 
     //Go back to beginning of the file
@@ -187,12 +196,13 @@ void CsvDataImportAndExportManager::load_dataset()
         load_dataset_without_timestamps_into_containers(separator, dataset, &dataset_file_text_stream);
 
     dataset_file.close();
+    QFileInfo dataset_file_info(dataset_file);
+    dataset -> set_dataset_name(dataset_file_info.baseName());
 
     log.message = "Dataset loaded from file: " + dataset_file_path;
-    emit signal_update_task_progress(100);
     emit signal_log_message(log, sender_name);
-    emit signal_dataset_loaded(dataset);
-    emit signal_task_finished();
+    emit signal_dataset_loaded(dataset); //For CoreController to manager dataset change and prepare its representation
+    emit signal_task_finished(); //For BackgroundTasksPage to remove the visualization
 }
 
 //TODO:
@@ -206,9 +216,9 @@ void CsvDataImportAndExportManager::set_dataset_file_path(QString dataset_file_p
     this -> dataset_file_path = dataset_file_path;
 }
 
-int CsvDataImportAndExportManager::get_dataset_sampling_time_in_miliseconds(QString presumably_timestamp, QString presumably_next_timestamp)
+double CsvDataImportAndExportManager::get_dataset_sampling_time_in_seconds(QString presumably_timestamp, QString presumably_next_timestamp)
 {
-    int sampling_time = 0;
+    double sampling_time = 0;
 
     QPair<int, QString> format = check_timestamps_validity(presumably_timestamp);
     if(format.first == -1)
@@ -233,7 +243,7 @@ int CsvDataImportAndExportManager::get_dataset_sampling_time_in_miliseconds(QStr
     if(sampling_time < 0)
         sampling_time = 0;
 
-    return sampling_time;
+    return sampling_time/1000;
 }
 
 QPair<int, QString> CsvDataImportAndExportManager::check_timestamps_validity(QString presumably_timestamp)

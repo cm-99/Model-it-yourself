@@ -6,6 +6,7 @@
 int main(int argc, char *argv[])
 {
     qRegisterMetaType<Log>("Log");
+    qRegisterMetaType<Log>("SignalInfo");
 
     QApplication app_MIY(argc, argv);
     app_MIY.setApplicationName("MIY");

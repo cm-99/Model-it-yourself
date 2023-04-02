@@ -6,6 +6,7 @@
 #include <QString>
 #include <QObject>
 #include <QFile>
+#include <QTextStream>
 
 /**
  * DataImportAndExportManager implementation specialized in handling *.csv files.
@@ -44,11 +45,11 @@ private:
      */
     QStringList get_first_three_rows(QTextStream *dataset_file_text_stream, QString dataset_file_path);
     /**
-     * Attemps to calculate dataset's data sampling time in miliseconds based on two consecutive timestamps.
+     * Attemps to calculate dataset's data sampling time in seconds based on two consecutive timestamps.
      * @return - if timestamps are valid and consecutive (presumably_next_timestamp - presumably_timestamp > 0),
      *  returns sampling time in miliseconds. Otherwise, returns 0.
      */
-    int get_dataset_sampling_time_in_miliseconds(QString presumably_timestamp, QString presumably_next_timestamp);
+    double get_dataset_sampling_time_in_seconds(QString presumably_timestamp, QString presumably_next_timestamp);
     /**
      * Checks if provided QString can be recognized as valid timestamp - it contains part that can be converted to valid QTime object.
      * @param presumably_timestamp - dataset cell to be checked.
@@ -67,17 +68,17 @@ private:
      * Loads dataset into prepared containers inside @param dataset through @param dataset_file_text_stream.
      * Detected timestamps are loaded into separate container.
      */
-    void load_dataset_with_timestamps_into_containers(char separator, Dataset_TableModel *dataset, QTextStream *dataset_file_text_stream);
+    void load_dataset_with_timestamps_into_containers(char separator, EditableDataset *dataset, QTextStream *dataset_file_text_stream);
     /**
      * Loads dataset into prepared containers inside @param dataset through @param dataset_file_text_stream.
      */
-    void load_dataset_without_timestamps_into_containers(char separator, Dataset_TableModel *dataset, QTextStream *dataset_file_text_stream);
+    void load_dataset_without_timestamps_into_containers(char separator, EditableDataset *dataset, QTextStream *dataset_file_text_stream);
     /**
      * Loads headers from dataset file if those are found in the @param first_row.
      * Otherwise, prepares default headers. Headers are saved in @param dataset.
      * @return - returns true if headers were found in the file. Otherwise, returns false.
      */
-    bool prepare_dataset_headers(Dataset_TableModel *dataset, char separator, QString first_row);
+    bool prepare_dataset_headers(EditableDataset *dataset, char separator, QString first_row);
 
     //Methods extracted from save_dataset
 };

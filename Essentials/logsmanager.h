@@ -12,6 +12,10 @@
 #include <QDate>
 #include <QTime>
 
+/**
+ * Class managing logs.
+ * This mainly means creating and deleting log files and saving logs sent by permitted objects.
+ */
 class LogsManager
 {
 public:
