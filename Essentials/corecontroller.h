@@ -7,6 +7,7 @@
 #include "Essentials/GUI/GUIpages/datasetdetails.h"
 #include "Essentials/logsmanager.h"
 #include "Essentials/editabledataset.h"
+#include "Essentials/signalsstatisticscalculator.h"
 #include "Interfaces/dataimportandexportmanager.h"
 
 #include <QMap>
@@ -32,7 +33,7 @@ public:
     ~CoreController();
 
 private:
-    //Private attributess
+    // Private attributess
 
     /**
      * Main application GUI.
@@ -43,6 +44,9 @@ private:
      * Mutex to assert that relaying messages to LogsManager is done by one thread at a time
      */
     QMutex *mutex;
+
+    // Parameters
+
     /**
      * Default message display time in status bar. It can be overriden by showing a new message.
      */
@@ -53,11 +57,16 @@ private:
     /**
      * Provides message logging capability, stores them in a file.
      */
-    LogsManager *logs_manager = nullptr;
+    LogsManager logs_manager;
     /**
-     * Currently active dataset. It can be altered, [TODO: displayed using plots or used to create a new model].
+     * Currently active dataset. It can be altered, displayed using plots [TODO: or used to create a new model].
      */
     EditableDataset *active_dataset = nullptr;
+    /**
+     * Provides signals statistics calculating capability.
+     * Should be connected to signals emitted from active_dataset on its edition in order to perfrom a recalculation.
+     */
+    SignalsStatisticsCalculator signals_statistics_calculator;
     /**
      * QMap holding pairs of file extensions and pointers to objects providing dataset loading and saving functionalities for those extensions.
      */
@@ -72,19 +81,22 @@ private:
     QStringList supported_dataset_loading_and_saving_formats;
 
     ////GUI attributes
-    QTabWidget *dataset_tab_widget = nullptr;
+    QTabWidget central_tab_widget;
 
-    //Dataset tab pages
-    DatasetEditorPage *dataset_editor = nullptr;
-    DatasetDetails *dataset_details = nullptr;
-    DatasetPlotsPage *dataset_plots = nullptr;
+    QTabWidget dataset_tab_widget;
+    QTabWidget models_tab_widget;
 
-    //Models tab pages
+    // Dataset tab pages
+    DatasetEditorPage dataset_editor;
+    DatasetDetails dataset_details;
+    DatasetPlotsPage dataset_plots;
 
-    //Background tasks pages
-    BackgroundTasksPage *background_tasks = nullptr;
+    // Models tab pages
 
-    //Private methods
+    // Background tasks pages
+    BackgroundTasksPage background_tasks;
+
+    ////Private methods
 
     /**
      * Starts implementation of start_background_task in a different thread,
@@ -115,16 +127,13 @@ private:
      * Connect all objects allowed to send logs to slot_receive_and_relay_log
      */
     void prepare_log_connected_objects();
+    void prepare_data_import_and_export_managers();
 
-    //GUI methods
+    // GUI methods
 
-    /**
-     * Prepares main GUI framework to be filled by other classes.
-     */
     void prepare_GUI();
     void prepare_dataset_tab_pages();
-    void prepare_background_tasks_page(QTabWidget *central_tab_widget);
-    void prepare_data_import_and_export_managers();
+    void prepare_background_tasks_pages();
 
 private slots:
     /**
@@ -145,13 +154,9 @@ private slots:
      * For now - removes task visualization for completed task.
      */
     void slot_process_task_completion();
-    /**
-     * Restores all objects heavily depended on presence of valid dataset (dataset tabs for now) to their default states
-     * in response to removal of all the dataset data by the user.
-     */
-    void slot_restore_dataset_tabs_to_default_state();
 
-    //GUI slots
+    // GUI slots
+
     /**
      * Loads dataset from file specified by user through file dialog.
      * File is selectable if its extension is contained by supported_dataset_loading_and_saving_formats.

@@ -42,44 +42,9 @@ void EditableDataset::prepare_dataset_container(int columns, int rows, bool time
     signals_info.removeLast();
 }
 
-bool EditableDataset::get_timestamps_present() const
+SignalInfo *EditableDataset::get_signal_info_pointer(int signal_index)
 {
-    return timestamps_present;
-}
-
-int EditableDataset::get_rows_count() const
-{
-    return rows_count;
-}
-
-int EditableDataset::get_columns_count() const
-{
-    return columns_count;
-}
-
-double EditableDataset::get_sampling_time_in_seconds() const
-{
-    return sampling_time_in_seconds;
-}
-
-QString EditableDataset::get_dataset_name() const
-{
-    return dataset_name;
-}
-
-SignalInfo EditableDataset::get_signal_info(int signal_index) const
-{
-    return signals_info.at(signal_index);
-}
-
-double EditableDataset::get_sample_value(int signal_index, int row_index)
-{
-    return data_columns->at(signal_index)->at(row_index);
-}
-
-QString EditableDataset::get_timestamp(int row_index)
-{
-    return timestamps_column->at(row_index);
+    return &signals_info[signal_index];
 }
 
 void EditableDataset::set_sampling_time_in_seconds(double sampling_time_in_seconds)
@@ -90,6 +55,16 @@ void EditableDataset::set_sampling_time_in_seconds(double sampling_time_in_secon
 void EditableDataset::set_dataset_name(QString dataset_name)
 {
     this -> dataset_name = dataset_name;
+}
+
+void EditableDataset::set_min_signals_sample_value(double new_value)
+{
+    this -> min_signals_sample_value = new_value;
+}
+
+void EditableDataset::set_max_signals_sample_value(double new_value)
+{
+    this -> max_signals_sample_value = new_value;
 }
 
 void EditableDataset::append_sample(int signal_index, double sample_value)
@@ -121,16 +96,8 @@ void EditableDataset::append_signal_info(SignalInfo signal_info)
     signals_info.append(signal_info);
 }
 
-void EditableDataset::replace_signal_info(int signal_index, SignalInfo signal_info)
-{
-    signals_info.replace(signal_index, signal_info);
-}
-
 void EditableDataset::remove_columns(int first_column_to_remove, int columns_to_remove_count)
 {
-    qDebug()<<first_column_to_remove;
-    qDebug()<<columns_to_remove_count;
-
     //Columns - data_columns + timestamps_column
     if(first_column_to_remove + columns_to_remove_count > this -> columns_count || columns_to_remove_count == 0)
         return;
@@ -140,10 +107,14 @@ void EditableDataset::remove_columns(int first_column_to_remove, int columns_to_
     else
         remove_columns_from_dataset_without_timestamps(first_column_to_remove, columns_to_remove_count);
 
-    if(columns_count == 0)
+    if(this -> columns_count == 0)
+    {
         emit signal_all_data_removed();
+    }
     else
-        emit signal_dataset_edited();
+    {
+        emit signal_dataset_edited(DatasetSection(first_column_to_remove, columns_to_remove_count, 0, 0));
+    }
 }
 
 void EditableDataset::remove_rows(int first_row, int rows_count)
@@ -162,15 +133,14 @@ void EditableDataset::remove_rows(int first_row, int rows_count)
 
     this -> rows_count -= rows_count;
 
-    if(columns_count == 0)
+    if(this -> rows_count == 0)
+    {
         emit signal_all_data_removed();
+    }
     else
-        emit signal_dataset_edited();
-}
-
-void EditableDataset::calculate_signals_statistics()
-{
-
+    {
+        emit signal_dataset_edited(DatasetSection(0, 0, first_row, rows_count));
+    }
 }
 
 void EditableDataset::remove_columns_from_dataset_with_timestamps(int first_column_to_remove, int columns_to_remove_count)
@@ -233,10 +203,16 @@ void EditableDataset::remove_columns_from_dataset_without_timestamps(int first_c
 void EditableDataset::slot_update_dataset_name(QString new_name)
 {
     this -> dataset_name = new_name;
+    emit signal_dataset_information_edited();
 }
 
 void EditableDataset::slot_update_dataset_sampling_time(double new_sampling_time)
 {
     this -> sampling_time_in_seconds = new_sampling_time;
+}
+
+void EditableDataset::slot_relay_signal_info_update()
+{
+    emit signal_dataset_information_edited();
 }
 

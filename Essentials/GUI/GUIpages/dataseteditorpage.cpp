@@ -57,15 +57,15 @@ void DatasetEditorPage::set_dataset(EditableDataset *dataset)
 
 void DatasetEditorPage::slot_restore_to_default()
 {
-    auto *previous_dataset_model = dataset_model;
-    dataset_model = nullptr;
+    Dataset_TableModel *previous_dataset_model = dataset_model;
+    dataset_model = new Dataset_TableModel();
 
     dataset_view.setModel(dataset_model);
     button_remove_in_range.setDisabled(true);
     button_remove_selection.setDisabled(true);
 
     if(previous_dataset_model != nullptr)
-        previous_dataset_model->deleteLater();
+        previous_dataset_model -> deleteLater();
 }
 
 QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QModelIndexList selection)

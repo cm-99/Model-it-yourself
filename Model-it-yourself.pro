@@ -23,6 +23,7 @@ SOURCES += \
     Essentials/logrelay.cpp \
     Essentials/logsmanager.cpp \
     Essentials/readonlydataset.cpp \
+    Essentials/signalsstatisticscalculator.cpp \
     Implementations/csvdataimportandexportmanager.cpp \
     main.cpp
 
@@ -40,6 +41,7 @@ HEADERS += \
     Essentials/logrelay.h \
     Essentials/logsmanager.h \
     Essentials/readonlydataset.h \
+    Essentials/signalsstatisticscalculator.h \
     Implementations/csvdataimportandexportmanager.h \
     Interfaces/backgroundtaskenabledobject.h \
     Interfaces/dataimportandexportmanager.h \
