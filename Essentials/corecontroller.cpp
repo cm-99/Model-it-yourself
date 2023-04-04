@@ -11,11 +11,9 @@ CoreController::CoreController(QWidget *parent) :
     mutex(new QMutex())
 {
     prepare_logs_manager();
-
     prepare_data_import_and_export_managers();
     determine_supported_dataset_formats();
 
-    //Prepare GUI
     ui->setupUi(this);
     prepare_GUI();
 
@@ -25,7 +23,6 @@ CoreController::CoreController(QWidget *parent) :
 CoreController::~CoreController()
 {
     delete ui;
-    delete logs_manager;
     delete mutex;
     delete active_dataset;
 
@@ -47,15 +44,14 @@ void CoreController::determine_supported_dataset_formats()
     foreach(QString file_format, supported_dataset_loading_and_saving_formats)
         log.message += file_format;
 
-    logs_manager -> log_message(log, "CoreController");
+    logs_manager.log_message(log, "CoreController");
 }
 
 void CoreController::prepare_logs_manager()
 {
-    logs_manager = new LogsManager();
     uint default_logs_amount_permitted = 10;
-    logs_manager -> set_log_file_number_limit(default_logs_amount_permitted);
-    logs_manager -> delete_old_log_files();
+    logs_manager.set_log_file_number_limit(default_logs_amount_permitted);
+    logs_manager.delete_old_log_files();
 }
 
 void CoreController::prepare_log_connected_objects()
@@ -75,27 +71,23 @@ void CoreController::prepare_data_import_and_export_managers()
 
 void CoreController::prepare_dataset_tab_pages()
 {
-    dataset_editor = new DatasetEditorPage(dataset_tab_widget);
-    dataset_tab_widget -> addTab(dataset_editor, "Dataset editor");
-    dataset_details = new DatasetDetails(dataset_tab_widget);
-    dataset_tab_widget -> addTab(dataset_details, "Dataset details");
-    dataset_plots = new DatasetPlotsPage(dataset_tab_widget);
-    dataset_tab_widget -> addTab(dataset_plots, "Dataset plots");
+    dataset_tab_widget.addTab(&dataset_editor, "Dataset editor");
+    dataset_tab_widget.addTab(&dataset_details, "Dataset details");
+    dataset_tab_widget.addTab(&dataset_plots, "Dataset plots");
 
-    LogRelay *dataset_editors_logs_connector = dataset_editor -> get_log_relay();
+    LogRelay *dataset_editors_logs_connector = dataset_editor.get_log_relay();
     log_connected_objects.append(dataset_editors_logs_connector);
-    LogRelay *dataset_details_logs_connector = dataset_details -> get_log_relay();
+    LogRelay *dataset_details_logs_connector = dataset_details.get_log_relay();
     log_connected_objects.append(dataset_details_logs_connector);
-    LogRelay *dataset_plots_logs_connector = dataset_plots -> get_log_relay();
+    LogRelay *dataset_plots_logs_connector = dataset_plots.get_log_relay();
     log_connected_objects.append(dataset_plots_logs_connector);
 }
 
-void CoreController::prepare_background_tasks_page(QTabWidget *central_tab_widget)
+void CoreController::prepare_background_tasks_pages()
 {
-    background_tasks = new BackgroundTasksPage(central_tab_widget);
-    central_tab_widget -> addTab(background_tasks, "Background tasks");
+    central_tab_widget.addTab(&background_tasks, "Background tasks");
 
-    LogRelay *background_tasks_log_connector = dataset_editor -> get_log_relay();
+    LogRelay *background_tasks_log_connector = dataset_editor.get_log_relay();
     log_connected_objects.append(background_tasks_log_connector);
 }
 
@@ -116,27 +108,21 @@ void CoreController::prepare_GUI()
     file_menu -> show();
 
     //Preparing essential tabs to be filled by classes responsible for handling corresponding functionalities
-    //TODO: separate it into a method
-    //TODO: connect all LogRelays owned by pages to logs_manager
-    QTabWidget *central_tab_widget = new QTabWidget(this);
-    setCentralWidget(central_tab_widget);
+    this -> setCentralWidget(&central_tab_widget);
 
-    dataset_tab_widget = new QTabWidget();
-    QTabWidget *models_tab_widget = new QTabWidget();
-
-    central_tab_widget -> addTab(dataset_tab_widget, "Dataset");
-    central_tab_widget -> addTab(models_tab_widget, "Models");
+    central_tab_widget.addTab(&dataset_tab_widget, "Dataset");
+    central_tab_widget.addTab(&models_tab_widget, "Models");
 
     prepare_dataset_tab_pages();
-    prepare_background_tasks_page(central_tab_widget);
+    prepare_background_tasks_pages();
 }
 
 void CoreController::create_background_task(BackgroundTaskEnabledObject *task_object, int task_index)
 {
-    background_tasks -> add_new_task_visualization(task_object);
+    background_tasks.add_new_task_visualization(task_object);
     connect(task_object, &BackgroundTaskEnabledObject::signal_task_finished, this, &CoreController::slot_process_task_completion);
-    //TODO: Check if task can even be started
-    //Maybe create an enum in place of task_index to make it cleaner?
+    // TODO: Check if task can even be started
+    // Maybe create an enum in place of task_index to make it cleaner?
     QtConcurrent::run(task_object, &BackgroundTaskEnabledObject::start_background_task, task_index);
 }
 
@@ -144,9 +130,13 @@ void CoreController::slot_receive_and_relay_log(Log log, QString senderName)
 {
     QMutexLocker locker(mutex);
     if (senderName == "")
-        logs_manager -> log_message(log, QObject::sender()->metaObject()->className());
+    {
+        logs_manager.log_message(log, QObject::sender()->metaObject()->className());
+    }
     else
-        logs_manager -> log_message(log, senderName);
+    {
+        logs_manager.log_message(log, senderName);
+    }
 
     if(log.importance_level == enum_message_importance_level::WARNING)
         QMessageBox::warning(this, "MIY warning", "Warning: " + log.message, QMessageBox::Ok | QMessageBox::NoButton);
@@ -162,19 +152,28 @@ void CoreController::slot_change_active_dataset(EditableDataset *new_dataset)
     EditableDataset *previous_dataset = active_dataset;
     active_dataset = new_dataset;
 
-    //Calculate signals statistics now that dataset is complete
-    //active_dataset -> calculate_signals_statistics();
+    //Calculate signals statistics now that dataset is complete and connect it for later updates
+    signals_statistics_calculator.slot_calculate_signals_statistics(active_dataset);
+    connect(active_dataset, &EditableDataset::signal_dataset_edited, &signals_statistics_calculator, [=]
+    {
+        signals_statistics_calculator.slot_calculate_signals_statistics(active_dataset);
+    });
 
+    ////Update dataset pages
     //Prepare all dataset connections
-    connect(active_dataset, &EditableDataset::signal_all_data_removed, dataset_editor, &DatasetEditorPage::slot_restore_to_default);
+    connect(active_dataset, &EditableDataset::signal_all_data_removed, &dataset_editor, &DatasetEditorPage::slot_restore_to_default);
 
-    connect(active_dataset, &EditableDataset::signal_all_data_removed, dataset_details, &DatasetDetails::slot_restore_to_default);
-    connect(active_dataset, &EditableDataset::signal_dataset_edited, dataset_details, &DatasetDetails::slot_update_widgets);
+    connect(active_dataset, &EditableDataset::signal_all_data_removed, &dataset_details, &DatasetDetails::slot_restore_to_default);
+    connect(active_dataset, &EditableDataset::signal_dataset_edited, &dataset_details, &DatasetDetails::slot_update_widgets);
 
-    //Change dataset being represented by dataset_tab_widget
-    dataset_editor -> set_dataset(new_dataset);
-    dataset_details -> set_dataset(new_dataset);
-    dataset_plots -> set_dataset(new_dataset);
+    connect(active_dataset, &EditableDataset::signal_all_data_removed, &dataset_plots, &DatasetPlotsPage::slot_restore_to_default);
+    connect(active_dataset, &EditableDataset::signal_dataset_edited, &dataset_plots, &DatasetPlotsPage::slot_update_widgets);
+    connect(active_dataset, &EditableDataset::signal_dataset_information_edited, &dataset_plots, &DatasetPlotsPage::slot_update_dataset_informations);
+
+    //Change dataset being represented by dataset_tab_widget pages
+    dataset_editor.set_dataset(new_dataset);
+    dataset_details.set_dataset(new_dataset);
+    dataset_plots.set_dataset(new_dataset);
 
     if(previous_dataset != nullptr)
         previous_dataset -> deleteLater();
@@ -186,12 +185,7 @@ void CoreController::slot_process_task_completion()
 
     BackgroundTaskEnabledObject *object_which_finished_task = dynamic_cast<BackgroundTaskEnabledObject*>(sender);
     if(object_which_finished_task != nullptr)
-        background_tasks -> remove_task_visualization(object_which_finished_task);
-}
-
-void CoreController::slot_restore_dataset_tabs_to_default_state()
-{
-
+        background_tasks.remove_task_visualization(object_which_finished_task);
 }
 
 void CoreController::delegate_dataset_loading(QString dataset_file_path)
@@ -209,7 +203,7 @@ void CoreController::delegate_dataset_loading(QString dataset_file_path)
     if(supported_formats_mapped_to_data_managers.contains(dataset_file_extension_in_managers_format))
     {
         log.message = "Starting loading file: " + dataset_file_path;
-        logs_manager -> log_message(log, sender_name);
+        logs_manager.log_message(log, sender_name);
 
         DataImportAndExportManager *selected_data_manager = supported_formats_mapped_to_data_managers.value(dataset_file_extension_in_managers_format);
         selected_data_manager -> set_dataset_file_path(dataset_file_path);

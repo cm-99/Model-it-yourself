@@ -8,6 +8,11 @@
 /**
  * Base class to be inherited by all classes meant to be used as main QTabWidget's pages.
  */
+//It seems that for pages heavily dependent on valid Dataset being present TabWidgetPage could be subclassed as DatasetTabWidgetPage
+//to extract slot_restore_to_default and set_dataset.
+//...but DatasetEditorPage has direct feedback from its remove methods and does not need slot_update* like other two pages.
+//TODO: think about it
+
 class TabWidgetPage : public QWidget
 {
     Q_OBJECT    

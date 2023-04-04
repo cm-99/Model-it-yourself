@@ -20,6 +20,7 @@ struct SignalInfo
     SignalInfo(QString signal_name)
     {
         this -> name = signal_name;
+        this -> unit = "";
     }
 
     /** Full constructor */
@@ -34,6 +35,33 @@ struct SignalInfo
     virtual ~SignalInfo(){}
 };
 Q_DECLARE_METATYPE(SignalInfo)
+
+/**
+ * Boundaries of dataset's data section.
+ * Can be used to pass informations about boundaries of data removal/modification in an easily readable way.
+ */
+struct DatasetSection
+{
+    int first_column;
+    int columns_count;
+    int first_row;
+    int rows_count;
+
+    /** Default, empty constructor */
+    explicit DatasetSection(){}
+
+    /** Full constructor */
+    DatasetSection(int first_column, int columns_count, int first_row, int rows_count)
+    {
+        this -> first_column = first_column;
+        this -> columns_count = columns_count;
+        this -> first_row = first_row;
+        this -> rows_count = rows_count;
+    }
+
+    virtual ~DatasetSection(){}
+};
+Q_DECLARE_METATYPE(DatasetSection)
 
 /**
  * Base dataset class which does not allow creation or modification of dataset.
@@ -52,6 +80,8 @@ public:
     int get_columns_count() const;
     double get_sampling_time_in_seconds () const;
     QString get_dataset_name() const;
+    double get_min_signals_sample_value() const;
+    double get_max_signals_sample_value() const;
 
     ////Getters for dataset containers/values
     //Container getters
@@ -81,7 +111,7 @@ protected:
     QVector<QString> *timestamps_column = nullptr;
 
     //Additional dataset informations
-    //Timestamp shall not be treated as a signal but is appended to signals_info just to make getting headers less complicated.
+    //Timestamp shall not be treated as a signal but is appended to signals_info just to make getting headers easier.
     QList<SignalInfo> signals_info;
 
     /**
@@ -96,6 +126,9 @@ protected:
     int columns_count = 0;
     int rows_count = 0;
     bool timestamps_present = false;
+
+    double min_signals_sample_value = 0;
+    double max_signals_sample_value = 0;
 };
 
 #endif // READONLYDATASET_H

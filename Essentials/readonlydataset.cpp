@@ -37,6 +37,16 @@ QString ReadOnlyDataset::get_dataset_name() const
     return dataset_name;
 }
 
+double ReadOnlyDataset::get_min_signals_sample_value() const
+{
+    return min_signals_sample_value;
+}
+
+double ReadOnlyDataset::get_max_signals_sample_value() const
+{
+    return max_signals_sample_value;
+}
+
 QVector<QString> *ReadOnlyDataset::get_dataset_timestamps_container() const
 {
     return timestamps_column;
