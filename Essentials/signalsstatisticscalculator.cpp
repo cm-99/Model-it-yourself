@@ -3,15 +3,14 @@
 
 SignalsStatisticsCalculator::SignalsStatisticsCalculator(){}
 
-void SignalsStatisticsCalculator::slot_calculate_signals_statistics(EditableDataset *dataset)
+void SignalsStatisticsCalculator::calculate_min_and_max_signals_values(QVector<QVector<double>*>* dataset_container, EditableDataset *dataset)
 {
-    QVector<QVector<double>*>* dataset_container = dataset -> get_dataset_signals_container();
     int timestamps_offset = dataset -> get_timestamps_present();
 
-    QVector<double> min_signals_values;
-    QVector<double> max_signals_values;
+    double current_global_min_value = dataset_container -> at(0) -> at(0);
+    double current_global_max_value = dataset_container -> at(0) -> at(0);
 
-    // Calculate min and max values for each signal
+    // Calculate min and max values for each signal, set them in corresponding SignalInfo
     for(int i = 0; i < dataset_container -> length(); i++)
     {
         std::pair<double*, double*> min_max_pair = std::minmax_element(dataset_container -> at(i) -> begin(),
@@ -23,15 +22,35 @@ void SignalsStatisticsCalculator::slot_calculate_signals_statistics(EditableData
         signal_info -> min_value = min_value;
         signal_info -> max_value = max_value;
 
-        //Searching for global min/max could proparbly be done here already
-        min_signals_values.append(min_value);
-        max_signals_values.append(max_value);
+        // Calculate global (across all the signals) min and max values
+        if(min_value < current_global_min_value)
+        {
+            current_global_min_value = min_value;
+        }
+        if(max_value > current_global_max_value)
+        {
+            current_global_max_value = max_value;
+        }
     }
 
-    // Calculate global min and max values across signals
-    double global_min_signals_value = *std::min_element(min_signals_values.begin(), min_signals_values.end());
-    double global_max_signals_value = *std::max_element(max_signals_values.begin(), max_signals_values.end());
+    // Set global min/max values
+    dataset ->set_min_signals_sample_value(current_global_min_value);
+    dataset ->set_max_signals_sample_value(current_global_max_value);
+}
 
-    dataset ->set_min_signals_sample_value(global_min_signals_value);
-    dataset ->set_max_signals_sample_value(global_max_signals_value);
+void SignalsStatisticsCalculator::slot_calculate_signals_statistics(EditableDataset *dataset)
+{
+    QVector<QVector<double>*>* dataset_container = dataset -> get_dataset_signals_container();
+    if(dataset_container == nullptr)
+    {
+        return;
+        if(dataset_container -> at(0) == nullptr)
+        {
+            return;
+            if(dataset_container -> at(0)->isEmpty())
+                return;
+        }
+    }
+
+    calculate_min_and_max_signals_values(dataset_container, dataset);
 }

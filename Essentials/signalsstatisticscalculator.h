@@ -17,6 +17,9 @@ public:
 
 public slots:
     void slot_calculate_signals_statistics(EditableDataset *dataset);
+
+private:
+    void calculate_min_and_max_signals_values(QVector<QVector<double>*>* dataset_container, EditableDataset *dataset);
 };
 
 #endif // SIGNALSSTATISTICSCALCULATOR_H
