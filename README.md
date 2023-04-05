@@ -3,7 +3,7 @@
 I am pleased to present a project that for the moment has nothing to do with its great name. The target application is to allow data processing, modelling, verification of results and simulation using the model created. For the moment, data loading, pre-processing and visualisation are available (to a limited extent).  
 This was my first experience with building an application from scratch in MVC architecture. I hope that the base I have created will allow for rapid development of further parts of the application and I will come by here often to check off further targets.
 
-## Features (at the moment)
+## Features (wait a moment, gif is loading :) )
 ![alt text](demos/MIY-features.gif)
 
 ## Built with
