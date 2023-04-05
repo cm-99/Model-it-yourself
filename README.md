@@ -16,8 +16,8 @@ This project is licensed under GPLv3 license.
 - **General objectives/architecture:**
   - cleaning up all TODO comments. Either by implementing what is stated in them or removing what does not seem necessary any more.
   - refactoring code in essentials and converting interfaces/implementations to plugins
-  - extending logging functionality to include creation of xml files which which would depict call sequences and could be used to easily create sequence diagrams. 
-   In order not to introduce a bottleneck xml should propably be created on program exit from already existing txt logs.
+  - extending logging functionality to include creation of xml files which would depict call sequences and could be used to easily create sequence diagrams. 
+   In order not to introduce a bottleneck, xml should propably be created on program exit from already existing txt logs.
   - creating documentation and filling in missing tests.
 - **Data modelling:**
   - creating all the necessary GUI, model classes, identification using LSTM... and much more. 
