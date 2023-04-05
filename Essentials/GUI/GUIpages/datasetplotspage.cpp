@@ -54,6 +54,24 @@ void DatasetPlotsPage::update_widgets_on_signals_removal(DatasetSection dataset_
 
         check_boxes_layout.takeAt(first_signal_removed - timestamps_offset) -> widget() -> deleteLater();
     }
+
+    // Reconnect remaining check boxes to valid series
+    int check_boxes_left_count = check_boxes_layout.count();
+    for(int i = 0; i < check_boxes_left_count; i++)
+    {
+        QLayoutItem *item = check_boxes_layout.itemAt(i);
+        if(QWidget* widget = item -> widget())
+        {
+            QCheckBox *visibility_check_box = dynamic_cast<QCheckBox*>(widget);
+            visibility_check_box -> disconnect();
+            connect(visibility_check_box, &QCheckBox::stateChanged, this, [=](int state)
+            {
+                chart -> series().at(i)->setVisible(state == Qt::Checked);
+                slot_update_y_axis_range();
+            });
+        }
+    }
+    slot_update_y_axis_range();
 }
 
 void DatasetPlotsPage::update_widgets_on_rows_removal(DatasetSection dataset_section_updated)
@@ -143,7 +161,6 @@ void DatasetPlotsPage::slot_restore_to_default()
 
 void DatasetPlotsPage::slot_update_y_axis_range()
 {
-
     QVector<double> min_max_values;
 
     int timestamps_offset = current_dataset -> get_timestamps_present();
