@@ -1,5 +1,4 @@
 #include "editabledataset.h"
-#include "qdebug.h"
 
 EditableDataset::EditableDataset(){}
 

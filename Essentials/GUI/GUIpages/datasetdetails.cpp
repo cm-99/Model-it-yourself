@@ -140,12 +140,13 @@ void DatasetDetails::connect_editable_widgets_to_dataset()
 {
     connect(&dataset_name_edit, &QLineEdit::textEdited, this, [=](QString text)
     {
-        // Direct connection to slot_update_dataset_name does not throw any error, but does not work either...
         current_dataset -> slot_update_dataset_name(text);
     });
 
-    connect(&dataset_sampling_time_spinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
-            current_dataset, &EditableDataset::slot_update_dataset_sampling_time);
+    connect(&dataset_sampling_time_spinbox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [=](double new_sampling_time)
+    {
+        current_dataset -> slot_update_dataset_sampling_time(new_sampling_time);
+    });
 }
 
 void DatasetDetails::slot_update_widgets()
@@ -153,6 +154,6 @@ void DatasetDetails::slot_update_widgets()
     dataset_name_edit.setText(current_dataset -> get_dataset_name());
     dataset_signals_count_label.setText(QString::number(current_dataset -> get_columns_count() - current_dataset -> get_timestamps_present()));
     dataset_rows_count_label.setText(QString::number(current_dataset -> get_rows_count()));
-    dataset_sampling_time_spinbox.setValue(current_dataset->get_sampling_time_in_seconds());
+    dataset_sampling_time_spinbox.setValue(current_dataset -> get_sampling_time_in_seconds());
     signals_table_model -> update_dataset_informations();
 }

@@ -13,7 +13,6 @@
 /**
  * Class managing GUI for viewing currently performed background tasks.
  */
-//TODO: Add scrolling ability
 class BackgroundTasksPage : public TabWidgetPage
 {
     Q_OBJECT

@@ -78,32 +78,27 @@ void DatasetPlotsPage::update_widgets_on_rows_removal(DatasetSection dataset_sec
 {
     // Rows range removed from first to last would trigger slot_restore_to_default, not this slot.
     // If rows range was removed from first or to last then x-axis can really be adjusted to a new range
-    // otherwise it should not be changed, because timeline would not make any sense. Just remove data points.
+    // otherwise it should not be changed - just remove series data points.
 
     bool rows_range_removed_from_first = dataset_section_updated.first_row == 0 ? true : false;
     bool rows_range_removed_to_last = dataset_section_updated.first_row + dataset_section_updated.rows_count ==
             old_dataset_rows_count ? true : false;
 
-    //Now this can be updated
+    // Now this can be updated
     old_dataset_rows_count = current_dataset -> get_rows_count();
 
     // Update x-axis
-    // TODO: If data sampling time changes from DatasetDetails then all the points in series need to be changed... but for now
-    int possible_data_sampling_time = current_dataset -> get_sampling_time_in_seconds();
-    int x_axis_increment =  possible_data_sampling_time != 0 ? possible_data_sampling_time : 1;
-
     if(rows_range_removed_from_first)
     {
-        x_axis -> setRange(x_axis -> min() + x_axis_increment*dataset_section_updated.rows_count, x_axis -> max());
+        x_axis -> setRange(x_axis -> min() + dataset_section_updated.rows_count, x_axis -> max());
     }
     else if(rows_range_removed_to_last)
     {
-        x_axis -> setRange(x_axis -> min(), x_axis -> max() - x_axis_increment*dataset_section_updated.rows_count);
+        x_axis -> setRange(x_axis -> min(), x_axis -> max() - dataset_section_updated.rows_count);
     }
 
     // Update series
     QList<QAbstractSeries*> series_displayed = chart -> series();
-
     for (int i = 0; i < series_displayed.length(); i++)
     {
         QXYSeries *xy_series = qobject_cast<QXYSeries*>(series_displayed.at(i));
@@ -116,19 +111,19 @@ void DatasetPlotsPage::update_widgets_on_rows_removal(DatasetSection dataset_sec
 
 void DatasetPlotsPage::slot_update_widgets(DatasetSection dataset_section_updated)
 {
-    //Signals removed == invalid series displayed
+    // Signals removed -> invalid series displayed
     if(dataset_section_updated.columns_count != 0)
     {
         update_widgets_on_signals_removal(dataset_section_updated);
     }
 
-    // Rows removed == invalid points in series displayed
+    // Rows removed -> invalid points in series displayed
     if(dataset_section_updated.rows_count != 0)
     {
         update_widgets_on_rows_removal(dataset_section_updated);
     }
 
-    //Update y_axis, minimum and maximum values could have changed and statistics should have been calculated first after dataset update
+    // Update y_axis, minimum and maximum values could have changed and statistics should have been calculated first after dataset update
     y_axis -> setRange(current_dataset -> get_min_signals_sample_value(), current_dataset -> get_max_signals_sample_value());
     chart_view.update();
 }
@@ -169,7 +164,7 @@ void DatasetPlotsPage::slot_update_y_axis_range()
     QList<QCheckBox*> check_boxes_corresponding_to_signals = this -> findChildren<QCheckBox*>();
     for(int i = 0; i < dataset_signals_count; i++)
     {
-        //Append to min_max_values vector only values corresponding to currently displayed signals
+        // Append to min_max_values vector only values corresponding to currently displayed signals
         if(check_boxes_corresponding_to_signals[i] -> isChecked())
         {
             SignalInfo temp_signal_info = current_dataset -> get_signal_info(i + timestamps_offset);
@@ -247,24 +242,18 @@ void DatasetPlotsPage::set_dataset(ReadOnlyDataset *dataset)
     chart -> addAxis(y_axis, Qt::AlignLeft);
 
     // Create x-axis, set title and range
-    // Why check sampling time and not timestamps_present?
-    // Because dataset can be without timestamps but user can still know the sampling time and want to use it.
-    int possible_data_sampling_time = current_dataset -> get_sampling_time_in_seconds();
-
-    int x_axis_increment =  possible_data_sampling_time != 0 ? possible_data_sampling_time : 1;
     int dataset_rows_count = dataset -> get_rows_count();
-    int max_x_value = x_axis_increment*dataset_rows_count;
 
     x_axis = new QValueAxis();
-    x_axis -> setRange(0, max_x_value - x_axis_increment);
-    QString x_axis_title_text = possible_data_sampling_time != 0 ? "Time from first timestamp [s]" : "Row index";
+    x_axis -> setRange(0, dataset_rows_count);
+    QString x_axis_title_text = "Row index";
     x_axis -> setTitleText(x_axis_title_text);
     chart -> addAxis(x_axis, Qt::AlignBottom);
 
     create_plots_for_current_dataset();
     create_visibility_check_boxes();
 
-    //Change displayed chart, delete previous
+    // Change displayed chart, delete previous
     chart_view.setChart(chart);
     if(previous_chart != nullptr)
     {

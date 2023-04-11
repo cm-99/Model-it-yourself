@@ -48,8 +48,8 @@ private:
      * Divides selected rows into sections usable for calling removeRows.
      * @return - returns list of int pairs representing sections - starting row index and rows count.
      */
-    QList<QPair<int, int>> divide_rows_selection_into_sections(QModelIndexList selection);
-    QList<QPair<int, int>> divide_columns_selection_into_sections(QModelIndexList selection);
+    QList<QPair<int, int>> divide_rows_selection_into_sections(QModelIndexList &selection);
+    QList<QPair<int, int>> divide_columns_selection_into_sections(QModelIndexList &selection);
 
 public slots:
     /**

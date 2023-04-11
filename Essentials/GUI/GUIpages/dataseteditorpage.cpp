@@ -10,7 +10,7 @@
 DatasetEditorPage::DatasetEditorPage(QWidget *parent)
     : TabWidgetPage{parent}
 {
-    //Set buttons parameters and connect them to corresponding slots
+    // Set buttons parameters and connect them to corresponding slots
     button_remove_selection.setText("Remove selection");
     button_remove_selection.setDisabled(true);
     button_remove_in_range.setText("Remove in range");
@@ -19,16 +19,16 @@ DatasetEditorPage::DatasetEditorPage(QWidget *parent)
     connect(&button_remove_selection, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_selection);
     connect(&button_remove_in_range, &QPushButton::clicked, this, &DatasetEditorPage::slot_remove_in_range);
 
-    //Prepare dataset_view settings
+    // Prepare dataset_view settings
     dataset_view.setStyleSheet("QHeaderView::section { background-color:grey } QTableCornerButton::section { background-color:grey }");
     dataset_view.setSelectionBehavior(QAbstractItemView::SelectRows);
     dataset_view.setSelectionMode(QAbstractItemView::ExtendedSelection);
 
-    //Change selection behavior depending on user action
+    // Connect changing of selection behavior depending on user action (vertical/horizontal header pressed)
     connect(dataset_view.horizontalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_horizontal_header_clicked);
     connect(dataset_view.verticalHeader(), &QHeaderView::sectionClicked, this, &DatasetEditorPage::slot_vertical_header_clicked);
 
-    //Add widgets to layout
+    // Add widgets to layout
     this->setLayout(&main_layout);
     main_layout.addWidget(&dataset_view);
     main_layout.addLayout(&buttons_layout);
@@ -68,11 +68,8 @@ void DatasetEditorPage::slot_restore_to_default()
         previous_dataset_model -> deleteLater();
 }
 
-QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QModelIndexList selection)
+QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QModelIndexList &selection)
 {
-    //TODO: Try to make more efficient algorithm for larger selections - something like binary search of breakpoint?
-    //This is O(n) and it hurts
-
     int new_selection_first_row_index = selection.first().row();
     int new_selection_last_row_index;
     QList<QPair<int, int>> list_of_selections_to_remove;
@@ -89,7 +86,7 @@ QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QM
         }
     }
 
-    //Append last selection to list
+    // Append last selection to list
     new_selection_last_row_index = selection.last().row();
     int rows_count = new_selection_last_row_index - new_selection_first_row_index + 1;
     list_of_selections_to_remove.append(QPair<int, int>(new_selection_first_row_index, rows_count));
@@ -97,7 +94,7 @@ QList<QPair<int, int>> DatasetEditorPage::divide_rows_selection_into_sections(QM
     return list_of_selections_to_remove;
 }
 
-QList<QPair<int, int> > DatasetEditorPage::divide_columns_selection_into_sections(QModelIndexList selection)
+QList<QPair<int, int> > DatasetEditorPage::divide_columns_selection_into_sections(QModelIndexList &selection)
 {
     int new_selection_first_column_index = selection.first().column();
     int new_selection_last_column_index;
@@ -115,7 +112,7 @@ QList<QPair<int, int> > DatasetEditorPage::divide_columns_selection_into_section
         }
     }
 
-    //Append last selection to list
+    // Append last selection to list
     new_selection_last_column_index = selection.last().column();
     int columns_count = new_selection_last_column_index - new_selection_first_column_index + 1;
     list_of_selections_to_remove.append(QPair<int, int>(new_selection_first_column_index, columns_count));
@@ -156,9 +153,7 @@ void DatasetEditorPage::slot_remove_selection()
 void DatasetEditorPage::remove_selected_rows()
 {
     QModelIndexList selection = dataset_view.selectionModel() -> selectedRows();
-    //It needs to be sorted because user can select it arbitrary
-    //TODO: qLess is deprecated, try to convert it to std::sort
-    qSort(selection.begin(), selection.end(), qLess<QModelIndex>());
+    std::sort(selection.begin(), selection.end(), std::less<QModelIndex>());
 
     QString sender_name = "DatasetEditorPage";
     Log log;
@@ -169,7 +164,7 @@ void DatasetEditorPage::remove_selected_rows()
 
     if(selection.last().row() - selection.first().row() + 1 != selection.length())
     {
-        //If it's a non-continuous selection it needs to be divided into sections - using QPair<first row index, count of rows>
+        // If it's a non-continuous selection it needs to be divided into sections - using QPair<first row index, count of rows>
         list_of_selections_to_remove = divide_rows_selection_into_sections(selection);
         temp_log_message = "Selection removal for non-continuous selection was called. Selections to remove: ";
     }
@@ -180,7 +175,7 @@ void DatasetEditorPage::remove_selected_rows()
     }
 
     QString list_of_selections_as_string;
-    //Remove selections starting from last
+    // Remove selections starting from last
     for(int i = list_of_selections_to_remove.length() - 1; i >= 0; i--)
     {
         int first_row = list_of_selections_to_remove[i].first;
@@ -196,9 +191,7 @@ void DatasetEditorPage::remove_selected_rows()
 void DatasetEditorPage::remove_selected_columns()
 {
     QModelIndexList selection = dataset_view.selectionModel() -> selectedColumns();
-    //It needs to be sorted because user can select it arbitrary
-    //TODO: qLess is deprecated, try to convert it to std::sort
-    qSort(selection.begin(), selection.end(), qLess<QModelIndex>());
+    std::sort(selection.begin(), selection.end(), std::less<QModelIndex>());
 
     QString sender_name = "DatasetEditorPage";
     Log log;

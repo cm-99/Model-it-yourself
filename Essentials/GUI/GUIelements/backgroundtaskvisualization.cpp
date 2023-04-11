@@ -20,14 +20,7 @@ BackgroundTaskVisualization::BackgroundTaskVisualization(QWidget *parent, QStrin
     layout->addWidget(task_message);
 }
 
-BackgroundTaskVisualization::~BackgroundTaskVisualization()
-{
-    //TODO: Check deletion order, assert that everything is destroyed
-    delete task_message;
-    delete task_start_time;
-    delete progress_bar;
-    delete layout;
-}
+BackgroundTaskVisualization::~BackgroundTaskVisualization(){}
 
 void BackgroundTaskVisualization::connect_task_to_visualization(BackgroundTaskEnabledObject *task)
 {
