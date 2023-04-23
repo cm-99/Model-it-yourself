@@ -27,4 +27,4 @@ This project is licensed under GPLv3 license.
   - creating documentation and filling in missing tests.
 - **Data modelling:**
   - creating all the necessary GUI, model classes, identification using LSTM... and much more. 
-    There is little to no point in going into lenghty descriptions before completing the previous part and this time preparing the structure before implementation.
+    There is little to no point in going into lenghty descriptions before completing the previous part.
